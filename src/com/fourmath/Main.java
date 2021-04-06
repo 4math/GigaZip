@@ -25,7 +25,5 @@ public class Main {
             String filename = sc.nextLine();
             file.decompress(filename);
         }
-//        file.compress("js.html");
-//        file.decompress("js.html.gigazip");
     }
 }
