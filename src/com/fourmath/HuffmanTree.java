@@ -129,7 +129,7 @@ public class HuffmanTree {
         return tableByteArray;
     }
 
-    class Node implements Comparable<Node> {
+    static class Node implements Comparable<Node> {
         byte byteData;
         int weight;
         int id;
