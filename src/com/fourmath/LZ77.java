@@ -1,7 +1,5 @@
 package com.fourmath;
 
-import java.io.File;
-import java.nio.file.Files;
 import java.util.ArrayList;
 
 public class LZ77 {
@@ -59,11 +57,12 @@ public class LZ77 {
                 // first byte contains information about match length and offset, second about offset only
                 // M2 - M0 O12 - O8   O7 - O0
                 // Match have all values, excluding 000 and 111, since they are reserved for other references
+                bestOffset--;
                 byte matchOffsetByte = (byte) ((bestMatchLength - 2) << 5);
                 matchOffsetByte |= (byte) (bestOffset >> 8);
                 output.add(matchOffsetByte);
 
-                byte offsetByte = (byte) (bestOffset - 1);
+                byte offsetByte = (byte) bestOffset;
                 output.add(offsetByte);
 
                 // -1 so that the next symbol won't be skipped by window
@@ -74,20 +73,22 @@ public class LZ77 {
                 uniqueElementPtr = -1;
 
             } else if (bestMatchLength > 8) {
+                bestMatchLength--;
+                bestOffset--;
                 byte firstByte = (byte) 0xe0; // 111 at the start
-                firstByte |= (byte) ((bestMatchLength - 1) >> 3);
+                firstByte |= (byte) ((bestMatchLength) >> 3);
                 output.add(firstByte);
 
-                byte secondByte = (byte) (((bestMatchLength - 1) & 0x7) << 5); // 0x7 = 0000 0111
+                byte secondByte = (byte) (((bestMatchLength) & 0x7) << 5); // 0x7 = 0000 0111
                 secondByte |= (byte) (bestOffset >> 8);
                 output.add(secondByte);
 
-                byte thirdByte = (byte) (bestOffset - 1);
+                byte thirdByte = (byte) (bestOffset);
                 output.add(thirdByte);
 
-                cursor += bestMatchLength - 1;
-                lookAheadBufferEndPtr += bestMatchLength - 1;
-                searchBufferStartPtr += bestMatchLength - 1;
+                cursor += bestMatchLength;
+                lookAheadBufferEndPtr += bestMatchLength;
+                searchBufferStartPtr += bestMatchLength;
                 uniqueElementCount = 0;
                 uniqueElementPtr = -1;
 
@@ -139,7 +140,8 @@ public class LZ77 {
                 cursor++; // 2nd byte
                 int offset = (input[cursor] & 0x1f) << 8;
                 cursor++; // 3rd byte
-                offset |= (byte) (input[cursor] + 1) & 0xff;
+                offset |= (byte) (input[cursor]) & 0xff;
+                offset = (offset + 1);
 
                 int size = output.size();
                 for (int i = 0; i < matchLen; i++) {
@@ -151,7 +153,8 @@ public class LZ77 {
                 int matchLen = ((buffer & 0xe0) >> 5) + 2;
                 int offset = (input[cursor] & 0x1f) << 8;
                 cursor++; // second byte
-                offset |= (byte) ((input[cursor]) + 1) & 0xff;
+                offset |= (byte) ((input[cursor])) & 0xff;
+                offset = (offset + 1);
 
                 int size = output.size();
                 for (int i = 0; i < matchLen; i++) {
