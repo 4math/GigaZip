@@ -1,5 +1,7 @@
 package com.fourmath;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
 
 public class LZ77 {
@@ -119,6 +121,7 @@ public class LZ77 {
         ArrayList<Byte> output = new ArrayList<>();
         int cursor = 0;
         byte buffer;
+
         // TODO: check if buffer reads reference
         while (cursor < input.length) {
             buffer = input[cursor];
@@ -131,15 +134,15 @@ public class LZ77 {
                 cursor += size + 1;
             } else if (((buffer & 0xff) >> 5) == 7) {
                 // Long match
-                int matchLen = ((buffer & 0xff) & 0x1f) << 3 | ((input[cursor + 1] & 0xe0) >> 5) + 1; // 0xe0 == 1110 0000
+                // 0xe0 == 1110 0000
+                int matchLen = ((buffer & 0xff) & 0x1f) << 3 | ((input[cursor + 1] & 0xe0) >> 5) + 1;
                 cursor++; // 2nd byte
                 int offset = (input[cursor] & 0x1f) << 8;
-                offset |= (input[cursor + 1] & 0xff) + 1;
-//                int offset = (input[cursor] & 0x1f) + input[cursor + 1] + 1; // TODO: incorrect int
                 cursor++; // 3rd byte
+                offset |= (byte) (input[cursor] + 1) & 0xff;
+
                 int size = output.size();
                 for (int i = 0; i < matchLen; i++) {
-//                    output.add(input[cursor - 1 - offset + i]);
                     output.add(output.get(size - offset + i));
                 }
                 cursor++; // next byte
@@ -147,16 +150,16 @@ public class LZ77 {
                 // Short match
                 int matchLen = ((buffer & 0xe0) >> 5) + 2;
                 int offset = (input[cursor] & 0x1f) << 8;
-                offset |= (input[cursor + 1] & 0xff) + 1;
-//                int offset = (buffer & 0x1f) + input[cursor + 1] + 1; // Incorrect int
                 cursor++; // second byte
+                offset |= (byte) ((input[cursor]) + 1) & 0xff;
+
                 int size = output.size();
                 for (int i = 0; i < matchLen; i++) {
-//                    output.add(input[cursor - 1 - offset + i]); // -1 byte of reference
                     output.add(output.get(size - offset + i)); // -1 byte of reference
                 }
                 cursor++; // next byte;
             }
+
         }
         return copyArray(output);
     }
