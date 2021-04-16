@@ -10,8 +10,8 @@ public class LZ77 {
         int uniqueElementPtr = -1;
         int uniqueElementCount = 0;
 
-        int lookAheadBufferSize = 15;
-        int searchBufferSize = 8192;
+        int lookAheadBufferSize = 16;
+        int searchBufferSize = 1 << 13; // 8192
 
         int cursor = 0;
 
@@ -136,12 +136,12 @@ public class LZ77 {
             } else if (((buffer & 0xff) >> 5) == 7) {
                 // Long match
                 // 0xe0 == 1110 0000
-                int matchLen = ((buffer & 0xff) & 0x1f) << 3 | ((input[cursor + 1] & 0xe0) >> 5) + 1;
+                int matchLen = (((buffer & 0xff) & 0x1f) << 3 | ((input[cursor + 1] & 0xe0) >> 5)) + 1;
                 cursor++; // 2nd byte
                 int offset = (input[cursor] & 0x1f) << 8;
                 cursor++; // 3rd byte
-                offset |= (byte) (input[cursor]) & 0xff;
-                offset = (offset + 1);
+                offset |= (input[cursor]) & 0xff;
+                offset++;
 
                 int size = output.size();
                 for (int i = 0; i < matchLen; i++) {
@@ -153,12 +153,12 @@ public class LZ77 {
                 int matchLen = ((buffer & 0xe0) >> 5) + 2;
                 int offset = (input[cursor] & 0x1f) << 8;
                 cursor++; // second byte
-                offset |= (byte) ((input[cursor])) & 0xff;
-                offset = (offset + 1);
+                offset |= ((input[cursor])) & 0xff;
+                offset++;
 
                 int size = output.size();
                 for (int i = 0; i < matchLen; i++) {
-                    output.add(output.get(size - offset + i)); // -1 byte of reference
+                    output.add(output.get(size - offset + i));
                 }
                 cursor++; // next byte;
             }
