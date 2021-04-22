@@ -5,13 +5,13 @@ import java.util.ArrayList;
 public class LZ77 {
 
     public byte[] encode(byte[] input) {
-        ArrayList<Byte> output = new ArrayList<>();
+        ArrayList<Byte> output = new ArrayList<>(10 * 1000 * 1000);
 
         int uniqueElementPtr = -1;
         int uniqueElementCount = 0;
 
-        int lookAheadBufferSize = 16;
-        int searchBufferSize = 1 << 13; // 8192
+        int lookAheadBufferSize = 64;
+        int searchBufferSize = 1 << 14; // 16384
 
         int cursor = 0;
 
@@ -20,16 +20,18 @@ public class LZ77 {
 
         int matchLength;
         int offset;
+        int bestMatchLength;
+        int bestOffset;
+        int lookAheadMatchIdx;
 
         while (cursor < input.length) {
 
             // Searching for the longest match prefix
-            offset = 0;
-            int bestMatchLength = 0;
-            int bestOffset = searchBufferSize + 1;
+            bestMatchLength = 0;
+            bestOffset = searchBufferSize + 1;
 
             for (int i = cursor - 1; i >= searchBufferStartPtr && i >= 0; i--) {
-                int lookAheadMatchIdx = cursor;
+                lookAheadMatchIdx = cursor;
 
                 if (input[i] == input[lookAheadMatchIdx]) {
                     matchLength = 0;
@@ -53,11 +55,12 @@ public class LZ77 {
             }
 
             // TODO: bit boundaries check
-            if (bestMatchLength >= 3 && bestMatchLength <= 8) {
+            if (bestMatchLength >= 3 && bestMatchLength <= 8 && bestOffset <= (searchBufferSize >> 1)) {
                 // first byte contains information about match length and offset, second about offset only
                 // M2 - M0 O12 - O8   O7 - O0
                 // Match have all values, excluding 000 and 111, since they are reserved for other references
                 bestOffset--;
+
                 byte matchOffsetByte = (byte) ((bestMatchLength - 2) << 5);
                 matchOffsetByte |= (byte) (bestOffset >> 8);
                 output.add(matchOffsetByte);
@@ -69,17 +72,19 @@ public class LZ77 {
                 cursor += bestMatchLength - 1;
                 lookAheadBufferEndPtr += bestMatchLength - 1;
                 searchBufferStartPtr += bestMatchLength - 1;
+
                 uniqueElementCount = 0;
                 uniqueElementPtr = -1;
 
             } else if (bestMatchLength > 8) {
                 bestMatchLength--;
                 bestOffset--;
+
                 byte firstByte = (byte) 0xe0; // 111 at the start
-                firstByte |= (byte) ((bestMatchLength) >> 3);
+                firstByte |= (byte) ((bestMatchLength) >> 2);
                 output.add(firstByte);
 
-                byte secondByte = (byte) (((bestMatchLength) & 0x7) << 5); // 0x7 = 0000 0111
+                byte secondByte = (byte) (((bestMatchLength) & 0x3) << 6); // 0x7 = 0000 0111, 0x3 = 0000 0011
                 secondByte |= (byte) (bestOffset >> 8);
                 output.add(secondByte);
 
@@ -89,6 +94,7 @@ public class LZ77 {
                 cursor += bestMatchLength;
                 lookAheadBufferEndPtr += bestMatchLength;
                 searchBufferStartPtr += bestMatchLength;
+
                 uniqueElementCount = 0;
                 uniqueElementPtr = -1;
 
@@ -98,7 +104,9 @@ public class LZ77 {
                     uniqueElementCount = 0;
                     uniqueElementPtr = -1;
                 }
+
                 uniqueElementCount++;
+
                 // Literal run encoding
                 if (uniqueElementPtr == -1) {
                     output.add((byte) 0);
@@ -119,7 +127,7 @@ public class LZ77 {
     }
 
     public byte[] decode(byte[] input) {
-        ArrayList<Byte> output = new ArrayList<>();
+        ArrayList<Byte> output = new ArrayList<>(10 * 1000 * 1000);
         int cursor = 0;
         byte buffer;
 
@@ -136,9 +144,10 @@ public class LZ77 {
             } else if (((buffer & 0xff) >> 5) == 7) {
                 // Long match
                 // 0xe0 == 1110 0000
-                int matchLen = (((buffer & 0xff) & 0x1f) << 3 | ((input[cursor + 1] & 0xe0) >> 5)) + 1;
+                // 0xc0 == 1100 0000
+                int matchLen = (((buffer & 0xff) & 0x1f) << 2 | ((input[cursor + 1] & 0xc0) >> 6)) + 1;
                 cursor++; // 2nd byte
-                int offset = (input[cursor] & 0x1f) << 8;
+                int offset = (input[cursor] & 0x3f) << 8; // 0x3f = 0011 1111
                 cursor++; // 3rd byte
                 offset |= (input[cursor]) & 0xff;
                 offset++;

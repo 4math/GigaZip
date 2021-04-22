@@ -44,7 +44,10 @@ public class Main {
                     File f = new File(filename);
                     byte[] input = Files.readAllBytes(f.toPath());
                     LZ77 lz77 = new LZ77();
+                    long start = System.nanoTime();
                     var result = lz77.encode(input);
+                    long end = System.nanoTime();
+                    System.out.println("Encode time: " + (end - start) / (1000 * 1000) + "ms");
                     try (DataOutputStream out = new DataOutputStream(new FileOutputStream(filename + ".lz"))) {
                         out.write(result);
                     } catch (IOException e) {
@@ -58,7 +61,10 @@ public class Main {
                     File f = new File(filename);
                     byte[] input = Files.readAllBytes(f.toPath());
                     LZ77 lz77 = new LZ77();
+                    long start = System.nanoTime();
                     var result = lz77.decode(input);
+                    long end = System.nanoTime();
+                    System.out.println("Decode time: " + (end - start) / (1000 * 1000) + "ms");
                     try (DataOutputStream out = new DataOutputStream(
                             new FileOutputStream("c" + filename.substring(0, filename.length() - 3)))) {
                         out.write(result);
