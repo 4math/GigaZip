@@ -65,6 +65,9 @@ public class LZ77 {
                     bestMatchLength = 0;
                     bestOffset = 0;
                 } else {
+                    if (bestMatchLength > 64) {
+                        bestMatchLength = 64;
+                    }
                     bestOffset = cursor - data[1];
                 }
             }
@@ -97,6 +100,7 @@ public class LZ77 {
                 uniqueElementPtr = -1;
 
             } else if (bestMatchLength > 8) {
+                System.out.println(cursor);
                 bestMatchLength--;
                 bestOffset--;
 
