@@ -69,6 +69,10 @@ public class LZ77 {
                         bestMatchLength = 64;
                     }
                     bestOffset = cursor - data[1];
+                    if (bestOffset > 16383) {
+                        bestOffset = 0;
+                        bestMatchLength = 0;
+                    }
                 }
             }
             else {
