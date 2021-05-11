@@ -104,7 +104,7 @@ public class LZ77 {
                 uniqueElementPtr = -1;
 
             } else if (bestMatchLength > 8) {
-                System.out.println(cursor);
+                //System.out.println(cursor);
                 bestMatchLength--;
                 bestOffset--;
 
@@ -238,6 +238,11 @@ class SuffixArray {
         LinkedList listOfIndexes = new LinkedList();
         Node ptr = listOfIndexes.head;
         for (int i = 0; i < arrayOfIndexes.size(); i++) {
+            //
+            if (start - arrayOfIndexes.get(i) > 16384) {
+                continue;
+            }
+            //
             if (arrayOfIndexes.get(i) < start) {
                 ptr.setNext(new Node(arrayOfIndexes.get(i), ptr.next));
                 ptr = ptr.next;
