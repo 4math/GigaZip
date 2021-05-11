@@ -21,7 +21,7 @@ public class ByteSuffixArray {
         this.suff = new Suffix[n];
         this.lcp = new int[n];
         constructArray();
-        constructLCP();
+//        constructLCP();
     }
 
     ByteSuffixArray(int start, int end, byte[] data) {
@@ -30,7 +30,7 @@ public class ByteSuffixArray {
         this.suff = new Suffix[n];
         this.lcp = new int[n];
         constructArray(start, end);
-        constructLCP();
+        constructLCP(start);
     }
 
     public static byte[] substr(int begin, int end, byte[] arr) {
@@ -103,7 +103,7 @@ public class ByteSuffixArray {
 //        return suff;
 //    }
 
-    public void constructLCP() {
+    public void constructLCP(int start) {
         // An auxiliary array to store inverse of suffix array
         // elements. For example if suffixArr[0] is 5, the
         // invSuff[5] would store 0.  This is used to get next
@@ -127,7 +127,7 @@ public class ByteSuffixArray {
 
             // Directly start matching from k'th index as
             // at-least k-1 characters will match
-            while (i + k < n && j + k < n && data[i + k] == data[j + k])
+            while (i + k < n && j + k < n && data[start + i + k] == data[start + j + k])
                 k++;
 
             lcp[invSuff[i] + 1] = k;

@@ -7,10 +7,10 @@ import java.util.ArrayList;
 
 public class LZ77 {
 
+    public int lookAheadBufferSize = 128; // 128 max
+    public int searchBufferSize = 1 << 14; // 16384
     private int uniqueElementPtr = -1;
     private int uniqueElementCount = 0;
-    public int lookAheadBufferSize = 64; // 128 max
-    public int searchBufferSize = 1 << 14; // 16384
 
     private void updateUniquePtr(ArrayList<Byte> output, byte[] data, int cursor) {
 
@@ -35,7 +35,7 @@ public class LZ77 {
     private void createReference(ArrayList<Byte> output, int offset, int matchLength) {
         if (matchLength >= 3 && matchLength <= 8 && offset <= (searchBufferSize >> 1)) {
             makeShortReference(output, offset, matchLength);
-        } else if (matchLength > 8) {
+        } else {
             makeLongReference(output, offset, matchLength);
         }
     }
@@ -80,7 +80,6 @@ public class LZ77 {
         int uniqueElementPtr = -1;
         int uniqueElementCount = 0;
 
-
         int cursor = 0;
 
         int lookAheadBufferEndPtr = lookAheadBufferSize;
@@ -91,133 +90,146 @@ public class LZ77 {
         int bestMatchLength;
         int bestOffset;
         int lookAheadMatchIdx;
+        int end = Math.min(lookAheadBufferEndPtr, input.length);
+        int start = Math.max(searchBufferStartPtr, 0);
 
-        while (cursor < input.length) {
+        ByteSuffixArray bsa = new ByteSuffixArray(start, end, input);
+        int[] lcp = bsa.getLcp();
+        Suffix[] suff = bsa.getSuff();
 
-//            updateUniquePtr(output, input, cursor);
-            int start = Math.max(searchBufferStartPtr, 0);
-            int end = Math.min(lookAheadBufferEndPtr, input.length);
-
-            ByteSuffixArray bsa = new ByteSuffixArray(start, end, input);
-            int[] lcp = bsa.getLcp();
-            Suffix[] suff = bsa.getSuff();
+        while (cursor < end) {
 
             bestMatchLength = 0;
             bestOffset = searchBufferSize + 1;
 
-            for (int lab = cursor; lab < end; lab++) {
-                int left = -1, right = -1;
+            int left = -1, right = -1;
 
-                for (int pos = 0; pos < suff.length; pos++) {
+            for (int pos = 0; pos < suff.length; pos++) {
 
-                    if (suff[pos].index == lab) {
-                        if (pos - 1 >= 0 && suff[pos - 1].index < lab) {
-                            left = lcp[pos - 1];
-                        }
+                if (suff[pos].index + start == cursor) {
+                    if (pos - 1 >= 0 && suff[pos - 1].index + start < cursor) {
+                        left = lcp[pos - 1];
+                    }
 
-                        if (pos + 1 < lcp.length && suff[pos + 1].index < lab) {
-                            right = lcp[pos + 1];
-                        }
+                    if (pos + 1 < lcp.length && suff[pos + 1].index + start < cursor) {
+                        right = lcp[pos + 1];
+                    }
 
-                        if (left == -1 && right == -1) {
-                            updateUniquePtr(output, input, lab);
-//                            System.out.println((lab + 1) + " One symbol");
-                            bfw.write((lab + 1) + " One symbol");
-                            bfw.write("\n");
-                            break;
-                        }
-
-                        if (left == -1) {
-                            if (right < 3) {
-                                updateUniquePtr(output, input, lab);
-//                                System.out.println((lab + 1) + " One symbol");
-                                bfw.write((lab + 1) + " One symbol");
-                                bfw.write("\n");
-                                break;
-                            }
-                            bestOffset = lab - suff[pos + 1].index;
-                            bestMatchLength = right;
-//                            System.out.println("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("\n");
-                            createReference(output, bestOffset, bestMatchLength);
-                            lab += bestMatchLength - 1;
-                            break;
-                        }
-
-                        if (right == -1) {
-                            if (lcp[pos] < 3) {
-                                updateUniquePtr(output, input, lab);
-//                                System.out.println((lab + 1) + " One symbol");
-                                bfw.write((lab + 1) + " One symbol");
-                                bfw.write("\n");
-                                break;
-                            }
-                            bestOffset = lab - suff[pos - 1].index;
-                            bestMatchLength = lcp[pos];
-//                            System.out.println("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("\n");
-                            createReference(output, bestOffset, bestMatchLength);
-                            lab += bestMatchLength - 1;
-                            break;
-                        }
-
-                        if (lcp[pos] < right) {
-                            if (right < 3) {
-                                updateUniquePtr(output, input, lab);
-//                                System.out.println((lab + 1) + " One symbol");
-                                bfw.write((lab + 1) + " One symbol");
-                                bfw.write("\n");
-                                break;
-                            }
-                            bestOffset = lab - suff[pos + 1].index;
-                            bestMatchLength = right;
-//                            System.out.println("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("\n");
-                            createReference(output, bestOffset, bestMatchLength);
-                            lab += bestMatchLength - 1;
-                        } else {
-                            if (lcp[pos] < 3) {
-                                updateUniquePtr(output, input, lab);
-//                                System.out.println((lab + 1) + " One symbol");
-                                bfw.write((lab + 1) + " One symbol");
-                                bfw.write("\n");
-                                break;
-                            }
-                            bestOffset = lab - suff[pos - 1].index;
-                            bestMatchLength = lcp[pos];
-//                            System.out.println("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
-                            bfw.write("\n");
-                            createReference(output, bestOffset, bestMatchLength);
-                            lab += bestMatchLength - 1;
-                        }
+                    if (left == -1 && right == -1) {
+                        updateUniquePtr(output, input, cursor);
+//                            System.out.println((cursor + 1) + " One symbol");
+                        bfw.write((cursor + 1) + " One symbol");
+                        bfw.write("\n");
+                        cursor++;
                         break;
+                    }
+
+                    if (left == -1) {
+                        if (right < 3) {
+                            updateUniquePtr(output, input, cursor);
+//                                System.out.println((cursor + 1) + " One symbol");
+                            bfw.write((cursor + 1) + " One symbol");
+                            bfw.write("\n");
+                            cursor++;
+                            break;
+                        }
+                        bestOffset = cursor - (suff[pos + 1].index + start);
+                        bestMatchLength = right;
+                        if (bestMatchLength > lookAheadBufferSize) {
+                            bestMatchLength = lookAheadBufferSize;
+                        }
+//                            System.out.println("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("\n");
+                        createReference(output, bestOffset, bestMatchLength);
+                        cursor += bestMatchLength;
+                        break;
+                    }
+
+                    if (right == -1) {
+                        if (lcp[pos] < 3) {
+                            updateUniquePtr(output, input, cursor);
+//                                System.out.println((cursor + 1) + " One symbol");
+                            bfw.write((cursor + 1) + " One symbol");
+                            bfw.write("\n");
+                            cursor++;
+                            break;
+                        }
+                        bestOffset = cursor - (suff[pos - 1].index + start);
+                        bestMatchLength = lcp[pos];
+                        if (bestMatchLength > lookAheadBufferSize) {
+                            bestMatchLength = lookAheadBufferSize;
+                        }
+//                            System.out.println("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("\n");
+                        createReference(output, bestOffset, bestMatchLength);
+                        cursor += bestMatchLength;
+                        break;
+                    }
+
+                    if (lcp[pos] < right) {
+                        if (right < 3) {
+                            updateUniquePtr(output, input, cursor);
+//                                System.out.println((cursor + 1) + " One symbol");
+                            bfw.write((cursor + 1) + " One symbol");
+                            bfw.write("\n");
+                            cursor++;
+                            break;
+                        }
+                        bestOffset = cursor - (suff[pos + 1].index + start);
+                        bestMatchLength = right;
+                        if (bestMatchLength > lookAheadBufferSize) {
+                            bestMatchLength = lookAheadBufferSize;
+                        }
+//                            System.out.println("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("\n");
+                        createReference(output, bestOffset, bestMatchLength);
+                        cursor += bestMatchLength;
+                    } else {
+                        if (lcp[pos] < 3) {
+                            updateUniquePtr(output, input, cursor);
+//                                System.out.println((cursor + 1) + " One symbol");
+                            bfw.write((cursor + 1) + " One symbol");
+                            bfw.write("\n");
+                            cursor++;
+                            break;
+                        }
+                        bestOffset = cursor - (suff[pos - 1].index + start);
+                        bestMatchLength = lcp[pos];
+                        if (bestMatchLength > lookAheadBufferSize) {
+                            bestMatchLength = lookAheadBufferSize;
+                        }
+//                            System.out.println("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+                        bfw.write("\n");
+                        createReference(output, bestOffset, bestMatchLength);
+                        cursor += bestMatchLength;
+                    }
+                    break;
 
 //                        if ((right < 3 && lcp[pos] < 3)) {
-//                            updateUniquePtr(output, input, lab);
-//                            System.out.println((lab + 1) + " One symbol");
+//                            updateUniquePtr(output, input, cursor);
+//                            System.out.println((cursor + 1) + " One symbol");
 //                            cursor++;
 //                        } else if (lcp[pos] > right || left > right) {
-//                            bestOffset = lab - suff[pos - 1].index;
+//                            bestOffset = cursor - suff[pos - 1].index;
 ////                            bestMatchLength = Math.max(left, lcp[pos]);
 //                            bestMatchLength = lcp[pos];
-//                            System.out.println("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+//                            System.out.println("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
 //                            createReference(output, bestOffset, bestMatchLength);
-//                            lab += bestMatchLength - 1;
+//                            cursor += bestMatchLength - 1;
 //                            cursor += bestMatchLength - 1;
 //                        } else {
-//                            bestOffset = lab - suff[pos + 1].index;
+//                            bestOffset = cursor - suff[pos + 1].index;
 //                            bestMatchLength = Math.max(right, lcp[pos]);
-//                            System.out.println("Match: " + (lab + 1) + " length " + bestMatchLength + " offset " + bestOffset);
+//                            System.out.println("Match: " + (cursor + 1) + " length " + bestMatchLength + " offset " + bestOffset);
 //                            createReference(output, bestOffset, bestMatchLength);
-//                            lab += bestMatchLength - 1;
+//                            cursor += bestMatchLength - 1;
 //                            cursor += bestMatchLength - 1;
 //                        }
 //                        break;
-                    }
                 }
             }
 
@@ -335,9 +347,17 @@ public class LZ77 {
 //                output.add(input[cursor]);
 //            }
 
-            cursor += lookAheadBufferSize;
-            lookAheadBufferEndPtr += lookAheadBufferSize;
-            searchBufferStartPtr += lookAheadBufferSize;
+//            cursor += lookAheadBufferSize;
+
+            if (cursor >= end) {
+                lookAheadBufferEndPtr += lookAheadBufferSize;
+                searchBufferStartPtr += lookAheadBufferSize;
+                end = Math.min(lookAheadBufferEndPtr, input.length);
+                start = Math.max(searchBufferStartPtr, 0);
+                bsa = new ByteSuffixArray(start, end, input);
+                lcp = bsa.getLcp();
+                suff = bsa.getSuff();
+            }
 //            cursor++;
 //            lookAheadBufferEndPtr = cursor + lookAheadBufferSize;
 //            searchBufferStartPtr = searchBufferStartPtr + cursor;
