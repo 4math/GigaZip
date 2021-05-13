@@ -60,13 +60,13 @@ class SuffixArray {
         LinkedList listOfIndexes = new LinkedList();
         Node ptr;
 
+        //
         int pos = binarySearch(arrayOfIndexes, start);
         if (pos == 0 || pos == 1) {
             return new int[]{-1, -1};
         } else {
             pos--;
         }
-
         for (int i = pos; i > -1; i--) {
             if (start - arrayOfIndexes.get(i) < searchBufferSize) {
                 listOfIndexes.head.setNext(new Node(arrayOfIndexes.get(i), listOfIndexes.head.next));
@@ -78,14 +78,11 @@ class SuffixArray {
 
         int len = 3;
         loop:
-        for (; len < lookAheadBufferSize; len++) {
+        for (len = 3; len < lookAheadBufferSize; len++) {
             ptr = listOfIndexes.head;
             int howMany = listOfIndexes.size;
             for (int i = 0; i < howMany; i++) {
-                if (start + len >= bFile.length
-                        || ptr.next.index + len >= bFile.length
-                        || ptr.next.index + len >= start
-                        || bFile[ptr.next.index + len] != bFile[start + len]) {
+                if (start + len >= bFile.length || ptr.next.index + len >= bFile.length || ptr.next.index + len >= start || bFile[ptr.next.index + len] != bFile[start + len]) {
                     if (listOfIndexes.size == 1) {
                         break loop;
                     }
@@ -98,7 +95,7 @@ class SuffixArray {
         }
         int[] answer = new int[2];
         answer[0] = len;
-        answer[1] = start - listOfIndexes.head.next.index;
+        answer[1] = listOfIndexes.head.next.index;
         return answer;
     }
 

@@ -5,8 +5,8 @@ import java.util.ArrayList;
 
 public class LZ77 {
 
-    public int lookAheadBufferSize = (1 << 8); // 255 max ??
-    public int searchBufferSize = (1 << 16); // max 65536 ??
+    public int lookAheadBufferSize = (1 << 8) - 1; // 255 max ??
+    public int searchBufferSize = (1 << 16) - 1; // max 65536 ??
     ArrayList<Byte> output = new ArrayList<>(10 * 1000 * 1000);
     private byte carry = 0;
     private int k = 0;
@@ -67,12 +67,35 @@ public class LZ77 {
         SuffixArray sa = new SuffixArray(input, lookAheadBufferSize, searchBufferSize);
         int cursor = 0;
 
-        while (cursor < input.length - 2) {
-            int[] data = sa.searchBestMatch(cursor);
-            int bestMatchLength = data[0];
-            int offset = data[1];
+        while (cursor < input.length) {
+            int bestMatchLength;
+            int bestOffset;
+
+            if (cursor < input.length - 2) {
+                int[] data = sa.searchBestMatch(cursor);
+                bestMatchLength = data[0];
+                bestOffset = data[1];
+                if (bestOffset == -1) {
+                    bestMatchLength = 0;
+                    bestOffset = 0;
+                } else {
+                    if (bestMatchLength > lookAheadBufferSize) {
+                        bestMatchLength = lookAheadBufferSize;
+                    }
+                    bestOffset = cursor - data[1];
+                    if (bestOffset > searchBufferSize) {
+                        bestOffset = 0;
+                        bestMatchLength = 0;
+                    }
+                }
+            }
+            else {
+                bestOffset = 0;
+                bestMatchLength = 0;
+            }
+
             if (bestMatchLength > 3) {
-                pushReference(offset, bestMatchLength);
+                pushReference(bestOffset, bestMatchLength);
                 cursor += bestMatchLength;
             } else {
                 pushData(input[cursor]);
@@ -80,9 +103,6 @@ public class LZ77 {
             }
         }
 
-        for (int i = input.length - 2; i < input.length; i++) {
-            pushData(input[i]);
-        }
 
         return copyArray(output);
     }
