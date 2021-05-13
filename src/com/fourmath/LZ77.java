@@ -4,13 +4,15 @@ import java.util.ArrayList;
 
 public class LZ77 {
 
+    static int lookAheadBufferSize = 128;
+
     public byte[] encode(byte[] input) {
         ArrayList<Byte> output = new ArrayList<>(10 * 1000 * 1000);
 
         int uniqueElementPtr = -1;
         int uniqueElementCount = 0;
 
-        int lookAheadBufferSize = 64;
+        //int lookAheadBufferSize = 128;  //64
         int searchBufferSize = 1 << 14; // 16384
 
         int cursor = 0;
@@ -65,11 +67,11 @@ public class LZ77 {
                     bestMatchLength = 0;
                     bestOffset = 0;
                 } else {
-                    if (bestMatchLength > 64) {
-                        bestMatchLength = 64;
+                    if (bestMatchLength > lookAheadBufferSize) {
+                        bestMatchLength = lookAheadBufferSize;
                     }
                     bestOffset = cursor - data[1];
-                    if (bestOffset > 16383) {
+                    if (bestOffset > 16384) {
                         bestOffset = 0;
                         bestMatchLength = 0;
                     }
@@ -223,7 +225,7 @@ class SuffixArray {
         sa = new ArrayList[256][256][256];
         for (int i = 0; i < bFile.length - 2; i++) {
             if (sa[bFile[i] & 0xff][bFile[i + 1] & 0xff][bFile[i + 2] & 0xff] == null) {
-                sa[bFile[i] & 0xff][bFile[i + 1] & 0xff][bFile[i + 2] & 0xff] = new ArrayList<Integer>();
+                sa[bFile[i] & 0xff][bFile[i + 1] & 0xff][bFile[i + 2] & 0xff] = new ArrayList();
             }
             sa[bFile[i] & 0xff][bFile[i + 1] & 0xff][bFile[i + 2] & 0xff].add(i);
         }
@@ -237,7 +239,27 @@ class SuffixArray {
         ArrayList<Integer> arrayOfIndexes = searchIndexes(start);
         LinkedList listOfIndexes = new LinkedList();
         Node ptr = listOfIndexes.head;
-        for (int i = 0; i < arrayOfIndexes.size(); i++) {
+
+        //
+        int pos = binarySearch(arrayOfIndexes, start);
+        if (pos == 0 || pos == 1) {
+            return new int[]{-1, -1};
+        }
+        else {
+            pos--;
+        }
+        for (int i = pos; i > -1; i--) {
+            if (start - arrayOfIndexes.get(i) < 16385) {
+                listOfIndexes.head.setNext(new Node(arrayOfIndexes.get(i), listOfIndexes.head.next));
+                listOfIndexes.size++;
+            }
+            else {
+                break;
+            }
+        }
+        //
+
+        /*for (int i = 0; i < arrayOfIndexes.size(); i++) {
             //
             if (start - arrayOfIndexes.get(i) > 16384) {
                 continue;
@@ -251,9 +273,9 @@ class SuffixArray {
             else {
                 break;
             }
-        }
+        }*/
         int len = 3;
-        loop: for (len = 3; len < 65; len++) {
+        loop: for (len = 3; len < 129; len++) {
             ptr = listOfIndexes.head;
             int howMany = listOfIndexes.size;
             for (int i = 0; i < howMany; i++) {
@@ -272,6 +294,20 @@ class SuffixArray {
         answer[0] = len;
         answer[1] = listOfIndexes.head.next.indx;
         return answer;
+    }
+
+    public static int binarySearch(ArrayList<Integer> arr, int x) {
+        int l = 0, r = arr.size() - 1;
+        while (l <= r) {
+            int m = l + (r - l) / 2;
+            if (arr.get(m) == x)
+                return m;
+            if (arr.get(m) < x)
+                l = m + 1;
+            else
+                r = m - 1;
+        }
+        return -1;
     }
 
 }
