@@ -26,7 +26,7 @@ public class LZ77 {
         int bestOffset;
         int lookAheadMatchIdx;
 
-        SuffixArray suffixArray = new SuffixArray(input);
+        SuffixArray suffixArray = new SuffixArray(input, lookAheadBufferSize, searchBufferSize);
 
         while (cursor < input.length) {   //-2?
 
@@ -59,6 +59,25 @@ public class LZ77 {
             }*/
 
             //
+
+            //
+            /*if (cursor < input.length - 2) {
+                int[] data = suffixArray.searchBestMatch(cursor);
+                bestMatchLength = data[0];
+                bestOffset = data[1];
+                if (bestOffset == -1) {
+                    bestMatchLength = 0;
+                    bestOffset = 0;
+                }
+                else {
+                    bestOffset = cursor - data[1];
+                }
+            }
+            else {
+                bestOffset = 0;
+                bestMatchLength = 0;
+            }*/
+            //
             if (cursor < input.length - 2) {
                 int[] data = suffixArray.searchBestMatch(cursor);
                 bestMatchLength = data[0];
@@ -67,14 +86,14 @@ public class LZ77 {
                     bestMatchLength = 0;
                     bestOffset = 0;
                 } else {
-                    if (bestMatchLength > lookAheadBufferSize) {
-                        bestMatchLength = lookAheadBufferSize;
-                    }
+                    //if (bestMatchLength > lookAheadBufferSize) {
+                    //    bestMatchLength = lookAheadBufferSize;
+                    //}
                     bestOffset = cursor - data[1];
-                    if (bestOffset > 16384) {
-                        bestOffset = 0;
-                        bestMatchLength = 0;
-                    }
+                    //if (bestOffset > 16384) {
+                    //    bestOffset = 0;
+                    //    bestMatchLength = 0;
+                    //}
                 }
             }
             else {
@@ -215,7 +234,7 @@ public class LZ77 {
     }
 }
 
-class SuffixArray {
+/*class SuffixArray {
 
     ArrayList<Integer>[][][] sa;
     byte[] bFile;
@@ -242,7 +261,7 @@ class SuffixArray {
 
         //
         int pos = binarySearch(arrayOfIndexes, start);
-        if (pos == 0 || pos == 1) {
+        if (pos == 0) { //|| pos == 1
             return new int[]{-1, -1};
         }
         else {
@@ -258,22 +277,6 @@ class SuffixArray {
             }
         }
         //
-
-        /*for (int i = 0; i < arrayOfIndexes.size(); i++) {
-            //
-            if (start - arrayOfIndexes.get(i) > 16384) {
-                continue;
-            }
-            //
-            if (arrayOfIndexes.get(i) < start) {
-                ptr.setNext(new Node(arrayOfIndexes.get(i), ptr.next));
-                ptr = ptr.next;
-                listOfIndexes.size++;
-            }
-            else {
-                break;
-            }
-        }*/
         int len = 3;
         loop: for (len = 3; len < 129; len++) {
             ptr = listOfIndexes.head;
@@ -294,6 +297,88 @@ class SuffixArray {
         answer[0] = len;
         answer[1] = listOfIndexes.head.next.indx;
         return answer;
+    }
+
+    public static int binarySearch(ArrayList<Integer> arr, int x) {
+        int l = 0, r = arr.size() - 1;
+        while (l <= r) {
+            int m = l + (r - l) / 2;
+            if (arr.get(m) == x)
+                return m;
+            if (arr.get(m) < x)
+                l = m + 1;
+            else
+                r = m - 1;
+        }
+        return -1;
+    }
+
+}*/
+
+class SuffixArray {
+
+    ArrayList<Integer>[][][] sa;
+    byte[] bFile;
+    int lookAheadBufferSize;
+    int searchBufferSize;
+
+    SuffixArray(byte[] bFile, int lookAheadBufferSize, int searchBufferSize) {
+        this.bFile = bFile;
+        this.lookAheadBufferSize = lookAheadBufferSize;
+        this.searchBufferSize = searchBufferSize;
+        sa = new ArrayList[256][256][256];
+        for (int i = 0; i < bFile.length - 2; i++) {
+            if (sa[bFile[i] & 0xff][bFile[i + 1] & 0xff][bFile[i + 2] & 0xff] == null) {
+                sa[bFile[i] & 0xff][bFile[i + 1] & 0xff][bFile[i + 2] & 0xff] = new ArrayList<Integer>();
+            }
+            sa[bFile[i] & 0xff][bFile[i + 1] & 0xff][bFile[i + 2] & 0xff].add(i);
+        }
+    }
+
+    public ArrayList<Integer> searchIndexes(int start) {
+        return sa[bFile[start] & 0xff][bFile[start + 1] & 0xff][bFile[start + 2] & 0xff];
+    }
+
+    public int[] searchBestMatch(int start) {
+        ArrayList<Integer> arrayOfIndexes = searchIndexes(start);
+        LinkedList listOfIndexes = new LinkedList();
+        int pos = binarySearch(arrayOfIndexes, start);
+        if (pos == 0) {
+            return new int[]{-1, -1};
+        }
+        else {
+            pos--;
+        }
+        for (int i = pos; i > -1; i--) {
+            if (start - arrayOfIndexes.get(i) < searchBufferSize + 1) {
+                listOfIndexes.head.setNext(new Node(arrayOfIndexes.get(i), listOfIndexes.head.next));
+                listOfIndexes.size++;
+            }
+            else {
+                break;
+            }
+        }
+        int len = 3;
+        Node ptr;
+        loop: for (len = 3; len < lookAheadBufferSize; len++) { //len < lookAheadBufferSize + 1
+            ptr = listOfIndexes.head;
+            int howMany = listOfIndexes.size;
+            for (int i = 0; i < howMany; i++) {
+                if (start + len >= bFile.length ||
+                        ptr.next.indx + len >= bFile.length ||
+                        ptr.next.indx + len >= start ||
+                        bFile[ptr.next.indx + len] != bFile[start + len]) {
+                    if (listOfIndexes.size == 1) {
+                        break loop;
+                    }
+                    ptr.setNext(ptr.next.next);
+                    listOfIndexes.size--;
+                    continue;
+                }
+                ptr = ptr.next;
+            }
+        }                                                     // listOfIndexes.head.next.indx
+        return new int[] {len, listOfIndexes.head.next.indx}; // start - listOfIndexes.head.next.indx
     }
 
     public static int binarySearch(ArrayList<Integer> arr, int x) {
