@@ -3,7 +3,7 @@ package com.fourmath;
 import java.util.ArrayList;
 
 // at first u must create a suffix array from the file
-// Exaple:
+// Example:
 //SuffixArray suffixArray = new SuffixArray(input, (1 << 8) - 1, (1 << 16) - 1);
 //                                          ^       ^             ^
 //                                      byte file;  LAB size;     search buffer size
@@ -61,7 +61,7 @@ class SuffixArray {
         Node ptr;
 
         int pos = binarySearch(arrayOfIndexes, start);
-        if (pos == 0) { // pos == 1 delete
+        if (pos == 0) {
             return new int[]{-1, -1};
         } else {
             pos--;
