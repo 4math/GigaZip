@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class LZ77 {
 
-    public int lookAheadBufferSize = (1 << 7); // 256 max
+    public int lookAheadBufferSize = (1 << 8) - 1; // 256 max
     public int searchBufferSize = (1 << 16); // max 65536
     ArrayList<Byte> output = new ArrayList<>(10 * 1000 * 1000);
     private byte carry = 0;
