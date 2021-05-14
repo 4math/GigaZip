@@ -1,12 +1,14 @@
 package com.fourmath;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
 public class LZ77 {
 
-    public int lookAheadBufferSize = (1 << 8) - 1; // 255 max ??
-    public int searchBufferSize = (1 << 16) - 1; // max 65536 ??
+    public int lookAheadBufferSize = (1 << 7); // 256 max
+    public int searchBufferSize = (1 << 16); // max 65536
     ArrayList<Byte> output = new ArrayList<>(10 * 1000 * 1000);
     private byte carry = 0;
     private int k = 0;
@@ -62,14 +64,16 @@ public class LZ77 {
         }
     }
 
-    public byte[] encode(byte[] input) {
+    public byte[] encode(byte[] input) throws IOException {
 
         SuffixArray sa = new SuffixArray(input, lookAheadBufferSize, searchBufferSize);
+        BufferedWriter bfw = new BufferedWriter(new FileWriter("log.txt"));
+
         int cursor = 0;
 
         while (cursor < input.length) {
-            int bestMatchLength;
-            int bestOffset;
+            int bestMatchLength = 0;
+            int bestOffset = 0;
 
             if (cursor < input.length - 2) {
                 int[] data = sa.searchBestMatch(cursor);
@@ -79,37 +83,38 @@ public class LZ77 {
                     bestMatchLength = 0;
                     bestOffset = 0;
                 } else {
-                    if (bestMatchLength > lookAheadBufferSize) {
-                        bestMatchLength = lookAheadBufferSize;
-                    }
+//                    if (bestMatchLength > lookAheadBufferSize) {
+//                        bestMatchLength = lookAheadBufferSize;
+//                    }
                     bestOffset = cursor - data[1];
-                    if (bestOffset > searchBufferSize) {
-                        bestOffset = 0;
-                        bestMatchLength = 0;
-                    }
+//                    if (bestOffset > searchBufferSize) {
+//                        bestOffset = 0;
+//                        bestMatchLength = 0;
+//                    }
                 }
-            }
-            else {
-                bestOffset = 0;
-                bestMatchLength = 0;
             }
 
             if (bestMatchLength > 3) {
                 pushReference(bestOffset, bestMatchLength);
+                bfw.write(cursor + " Reference: offset: " + bestOffset + " matchLength " + bestMatchLength + "\n");
                 cursor += bestMatchLength;
             } else {
                 pushData(input[cursor]);
+                bfw.write(cursor + " One symbol: " + input[cursor] + "\n");
                 cursor++;
             }
         }
 
+        bfw.close();
+        output.add(carry);
 
         return copyArray(output);
     }
 
     public byte[] decode(byte[] input) {
 
-        k = 0;
+        int k = 0;
+
         int idx = 0;
         int outputIdx = 0;
         byte b = input[idx];
