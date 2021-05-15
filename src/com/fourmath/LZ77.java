@@ -1,9 +1,8 @@
 package com.fourmath;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
-public class LZ77 {
+public class LZ77 implements Compressor {
 
     public int lookAheadBufferSize = (1 << 8) - 1; // max 255
     public int searchBufferSize = (1 << 16); // max 65536
@@ -61,7 +60,8 @@ public class LZ77 {
         }
     }
 
-    public byte[] encode(byte[] input) throws IOException {
+    @Override
+    public byte[] encode(byte[] input) {
 
         SuffixArray sa = new SuffixArray(input, lookAheadBufferSize, searchBufferSize);
 
@@ -96,10 +96,10 @@ public class LZ77 {
         return copyArray(output);
     }
 
+    @Override
     public byte[] decode(byte[] input) {
 
         int k = 0;
-
         int idx = 0;
         int outputIdx = 0;
         byte b = input[idx];
