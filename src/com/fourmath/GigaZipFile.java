@@ -1,6 +1,9 @@
 package com.fourmath;
 
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 
 enum CompressionType {
@@ -11,6 +14,7 @@ enum CompressionType {
 
 interface Compressor {
     byte[] encode(byte[] input);
+
     byte[] decode(byte[] input);
 }
 
@@ -101,7 +105,7 @@ public class GigaZipFile {
         }
     }
 
-    private void decompress(String filename, byte[] input, Compressor compressor)  {
+    private void decompress(String filename, byte[] input, Compressor compressor) {
         long start = System.nanoTime();
         byte[] result = compressor.decode(input);
         long end = System.nanoTime();
@@ -114,7 +118,7 @@ public class GigaZipFile {
             double timeSec = time / 1e9;
             System.out.printf("Decompression speed: %.2f MB/s%n", (size / 1e6) / timeSec);
         }
-        try (DataOutputStream out = new DataOutputStream( new FileOutputStream(filename))) {
+        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(filename))) {
             out.write(result);
         } catch (IOException e) {
             System.out.println(e.toString());
@@ -133,7 +137,7 @@ public class GigaZipFile {
         String[] words = filename.split("\\.");
         StringBuilder sb = new StringBuilder();
         sb.append("Maybe you meant to use: ");
-        switch(words[words.length - 1]) {
+        switch (words[words.length - 1]) {
             case "lz" -> sb.append("\"-lz\" flag?");
             case "huff" -> sb.append("\"-huffman\" flag?");
             case "gigazip" -> sb.append("\"-deflate\" flag?");

@@ -103,7 +103,10 @@ public class Main {
                 case "exit" -> {
                     break outer;
                 }
-                default -> System.out.println("wrong command");
+                default -> {
+                    if (verbose)
+                        System.out.println("wrong command");
+                }
             }
         }
     }
