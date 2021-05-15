@@ -10,27 +10,32 @@ public class Main {
     public static void main(String[] args) throws IOException {
 
         CompressionType cType = CompressionType.Deflate;
+        boolean verbose = false;
         GigaZipFile file;
 
         if (args.length != 0 && args[0].equals("-huffman")) {
             cType = CompressionType.Huffman;
         } else if (args.length != 0 && args[0].equals("-lz77")) {
             cType = CompressionType.LZ77;
+        } else if (args.length != 0 && args[0].equals("-verbose")) {
+            verbose = true;
         }
 
-        file = new GigaZipFile(cType);
+        file = new GigaZipFile(cType, verbose);
 
         outer:
         while (true) {
             Scanner sc = new Scanner(System.in);
 
-            System.out.println("\nWhat to do?");
-            System.out.println("comp: compress file(Algorithm depends on flag, default is Deflate)");
-            System.out.println("decomp: decompress file(Algorithm depends on flag, default is Deflate with .gigazip extension)");
-            System.out.println("size: prints size of the given file in bytes");
-            System.out.println("equal: compares two files content");
-            System.out.println("about: prints information about authors");
-            System.out.println("exit: exits the program");
+            if (verbose) {
+                System.out.println("\nWhat to do?");
+                System.out.println("comp: compress file(Algorithm depends on flag, default is Deflate)");
+                System.out.println("decomp: decompress file(Algorithm depends on flag, default is Deflate with .gigazip extension)");
+                System.out.println("size: prints size of the given file in bytes");
+                System.out.println("equal: compares two files content");
+                System.out.println("about: prints information about authors");
+                System.out.println("exit: exits the program");
+            }
 
             String choice = sc.nextLine();
 
@@ -43,7 +48,9 @@ public class Main {
                     try {
                         file.compress(input, output);
                     } catch (IOException e) {
-                        System.out.println(e.toString());
+                        if (verbose) {
+                            System.out.println(e.toString());
+                        }
                     }
                 }
                 case "decomp" -> {
@@ -54,7 +61,9 @@ public class Main {
                     try {
                         file.decompress(input, output);
                     } catch (IOException e) {
-                        System.out.println(e.toString());
+                        if (verbose) {
+                            System.out.println(e.toString());
+                        }
                     }
                 }
                 case "size" -> {
@@ -62,10 +71,12 @@ public class Main {
                     String filename = sc.nextLine();
                     try {
                         File f = new File(filename);
-                        if (!f.exists()) throw new Exception("File does not exist!");
+                        if (verbose && !f.exists()) throw new Exception("File does not exist!");
                         System.out.println("size: " + f.length() + " B");
                     } catch (Exception e) {
-                        System.out.println(e.toString());
+                        if (verbose) {
+                            System.out.println(e.toString());
+                        }
                     }
                 }
                 case "equal" -> {
@@ -75,13 +86,15 @@ public class Main {
                     String second = sc.nextLine();
                     try {
                         File f1 = new File(first);
-                        if (!f1.exists()) throw new Exception("First file does not exist!");
+                        if (verbose && !f1.exists()) throw new Exception("First file does not exist!");
                         File f2 = new File(second);
-                        if (!f2.exists()) throw new Exception("Second file does not exist!");
+                        if (verbose && !f2.exists()) throw new Exception("Second file does not exist!");
                         boolean isEqual = sameContent(f1, f2);
                         System.out.println(isEqual);
                     } catch (Exception e) {
-                        System.out.println(e.toString());
+                        if (verbose) {
+                            System.out.println(e.toString());
+                        }
                     }
                 }
                 case "about" -> {
@@ -97,7 +110,6 @@ public class Main {
 
     private static boolean sameContent(File f1, File f2) throws IOException {
         if (f1.length() != f2.length()) return false;
-
         return Arrays.equals(Files.readAllBytes(f1.toPath()), Files.readAllBytes(f2.toPath()));
     }
 }

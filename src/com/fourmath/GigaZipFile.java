@@ -17,16 +17,20 @@ interface Compressor {
 public class GigaZipFile {
 
     private final CompressionType compressionType;
+    private final boolean verbose;
 
-    GigaZipFile(CompressionType cType) {
+    GigaZipFile(CompressionType cType, boolean verbose) {
         compressionType = cType;
+        this.verbose = verbose;
     }
 
     public void compress(String inputFilename, String outputFilename) throws IOException {
         File file = new File(inputFilename);
         byte[] input = Files.readAllBytes(file.toPath());
-        System.out.printf("Original file size: %d B | %.3f KB | %.3f MB%n", file.length(),
-                file.length() / 1e3, file.length() / 1e6);
+        if (verbose) {
+            System.out.printf("Original file size: %d B | %.3f KB | %.3f MB%n", file.length(),
+                    file.length() / 1e3, file.length() / 1e6);
+        }
 
         switch (compressionType) {
             case LZ77 -> {
@@ -42,19 +46,21 @@ public class GigaZipFile {
                 compress(outputFilename, input, comp);
             }
         }
-
-        System.out.println("Success!");
     }
 
     public void decompress(String inputFilename, String outputFilename) throws IOException {
         File file = new File(inputFilename);
-        if (!inputFilename.endsWith(compExtenstion())) {
+
+        if (verbose && !inputFilename.endsWith(compExtension())) {
             throw new IOException("Incorrect file format! " + maybe(inputFilename));
         }
+
         byte[] input = Files.readAllBytes(file.toPath());
 
-        System.out.printf("Original file size: %d B | %.3f KB | %.3f MB%n", file.length(),
-                file.length() / 1e3, file.length() / 1e6);
+        if (verbose) {
+            System.out.printf("Original file size: %d B | %.3f KB | %.3f MB%n", file.length(),
+                    file.length() / 1e3, file.length() / 1e6);
+        }
 
         switch (compressionType) {
             case LZ77 -> {
@@ -70,7 +76,6 @@ public class GigaZipFile {
                 decompress(outputFilename, input, comp);
             }
         }
-        System.out.println("Success!");
     }
 
     private void compress(String filename, byte[] input, Compressor compressor) {
@@ -79,14 +84,17 @@ public class GigaZipFile {
         long end = System.nanoTime();
         long time = (end - start);
         int size = result.length;
-        System.out.println("Compression time: " + time / 1e6 + "ms");
-        System.out.printf("Compressed file size: %d B | %.3f KB | %.3f MB%n", size,
-                (double) size / 1e3, (double) size / 1e6);
-        double timeSec = time / 1e9;
-        System.out.printf("Compression speed: %.2f MB/s%n", (size / 1e6) / timeSec);
-        System.out.printf("Compression ratio: %.2f %%%n", ((input.length - size) / (double) input.length) * 100);
+        if (verbose) {
+            System.out.println("Compression time: " + time / 1e6 + "ms");
+            System.out.printf("Compressed file size: %d B | %.3f KB | %.3f MB%n", size,
+                    (double) size / 1e3, (double) size / 1e6);
+            double timeSec = time / 1e9;
+            System.out.printf("Compression speed: %.2f MB/s%n", (size / 1e6) / timeSec);
+            System.out.printf("Compression ratio: %.2f %%%n", ((input.length - size) / (double) input.length) * 100);
+        }
 
-        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(filename + compExtenstion()))) {
+        try (DataOutputStream out = new DataOutputStream(
+                new FileOutputStream(verbose ? filename + compExtension() : filename))) {
             out.write(result);
         } catch (IOException e) {
             System.out.println(e.toString());
@@ -99,12 +107,13 @@ public class GigaZipFile {
         long end = System.nanoTime();
         long time = (end - start);
         int size = result.length;
-        System.out.println("Decoding time: " + time / 1e6 + "ms");
-        System.out.printf("Decompressed file size: %d B | %.3f KB | %.3f MB%n", size,
-                (float) size / 1e3, (float) size / 1e6);
-        double timeSec = time / 1e9;
-        System.out.printf("Decompression speed: %.2f MB/s%n", (size / 1e6) / timeSec);
-
+        if (verbose) {
+            System.out.println("Decoding time: " + time / 1e6 + "ms");
+            System.out.printf("Decompressed file size: %d B | %.3f KB | %.3f MB%n", size,
+                    (float) size / 1e3, (float) size / 1e6);
+            double timeSec = time / 1e9;
+            System.out.printf("Decompression speed: %.2f MB/s%n", (size / 1e6) / timeSec);
+        }
         try (DataOutputStream out = new DataOutputStream( new FileOutputStream(filename))) {
             out.write(result);
         } catch (IOException e) {
@@ -112,7 +121,7 @@ public class GigaZipFile {
         }
     }
 
-    private String compExtenstion() {
+    private String compExtension() {
         return switch (compressionType) {
             case LZ77 -> ".lz";
             case Huffman -> ".huff";
