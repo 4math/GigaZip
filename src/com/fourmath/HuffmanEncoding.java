@@ -1,28 +1,32 @@
 package com.fourmath;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class Decoder {
+public class HuffmanEncoding implements Compressor {
 
-    private final byte[] input;
-    private final ArrayList<Byte> decompressedData = new ArrayList<>();
-    private final HashMap<Byte, Integer> table = new HashMap<>();
+    public byte[] encode(byte[] input) {
+        HuffmanTree huffmanTree = new HuffmanTree(input);
+        byte[] data = huffmanTree.encode();
+        byte[] header = headerByteArray(huffmanTree);
 
-    Decoder(byte[] input) {
-        this.input = input;
-        try {
-            init();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+        byte[] result = new byte[header.length + data.length];
+
+        for (int i = 0; i < header.length; i++) {
+            result[i] = header[i];
         }
+
+        for (int i = 0; i < data.length; i++) {
+            result[header.length + i] = data[i];
+        }
+
+        return result;
     }
 
-    private void init() {
+    public byte[] decode(byte[] input) {
+        ArrayList<Byte> decompressedData = new ArrayList<>(input.length);
+        HashMap<Byte, Integer> table = new HashMap<>(); // frequency table of bytes
+
         byte headerPreamble = input[0];
         // 0000 0011
         // 0000 0011 => 0x3
@@ -34,9 +38,9 @@ public class Decoder {
         // Cutoff is needed, since compressed data does not fit into one byte exactly
         int cutOff = headerPreamble >> 2;
         int tableSize = ((input[4] & 0xff) << 24 |
-                         (input[3] & 0xff) << 16 |
-                         (input[2] & 0xff) << 8 |
-                         (input[1] & 0xff));
+                (input[3] & 0xff) << 16 |
+                (input[2] & 0xff) << 8 |
+                (input[1] & 0xff));
 
         // Reading table for decoding
         // First five bytes are used for header size and on 6-th byte starts table for decoding
@@ -79,7 +83,7 @@ public class Decoder {
         for (int i = 0; i < dataArr.length; i++) {
 
             if (i == dataArr.length - 1) {
-               end = cutOff;
+                end = cutOff;
             }
 
             for (int j = 7; j >= end; j--) {
@@ -104,16 +108,58 @@ public class Decoder {
             }
         }
 
+        return copyArray(decompressedData);
     }
 
-    public void writeDecompressedFile(String filename) {
-        File decompressedFile = new File(filename.substring(0, filename.length() - 8));
-        try (DataOutputStream out = new DataOutputStream(new FileOutputStream(decompressedFile))) {
-            for (byte chunk : decompressedData) {
-                out.write(chunk);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    private byte[] headerByteArray(HuffmanTree huffmanTree) {
+        byte cutoff = huffmanTree.cutoff.byteValue();
+
+        byte tableFrequencySize;
+        if (huffmanTree.maxFrequency < 1 << 8) {
+            tableFrequencySize = 1;
+        } else if (huffmanTree.maxFrequency < 1 << 16) {
+            tableFrequencySize = 2;
+        } else {
+            tableFrequencySize = 4;
         }
+
+        byte[] tableArray = huffmanTree.tableToByteArray(tableFrequencySize);
+
+        int preTableSize = 5;
+        int tableSize = tableArray.length;
+        int headerSize = preTableSize + tableSize;
+
+        byte[] headerByteArray = new byte[headerSize];
+        int ptr = 0;
+
+        // 0000 0000
+        // cutoff = 2
+        // 0000 0010
+        byte cutoffAndFrequencySize = cutoff;
+        // 0000 1000
+        cutoffAndFrequencySize <<= 2;
+        // frequency = 4 => 3
+        // 0000 1011
+        cutoffAndFrequencySize |= tableFrequencySize - 1;
+
+        headerByteArray[ptr++] = cutoffAndFrequencySize;
+
+        for (int i = 0; i < 4; i++) {
+            headerByteArray[ptr++] = (byte)(tableSize / (tableFrequencySize + 1) >>> (i * 8));
+        }
+
+        for (byte b: tableArray) {
+            headerByteArray[ptr++] = b;
+        }
+
+        return headerByteArray;
+    }
+
+    private byte[] copyArray(ArrayList<Byte> arr) {
+        byte[] copy = new byte[arr.size()];
+        for (int i = 0; i < arr.size(); i++) {
+            copy[i] = arr.get(i);
+        }
+        return copy;
     }
 }

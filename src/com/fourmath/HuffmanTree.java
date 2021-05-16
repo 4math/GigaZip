@@ -100,7 +100,7 @@ public class HuffmanTree {
             }
         }
 
-        System.out.println(table);
+//        System.out.println(table);
     }
 
     byte[] tableToByteArray(byte frequencySize) {
@@ -141,14 +141,6 @@ public class HuffmanTree {
             this.weight = weight;
             this.left = null;
             this.right = null;
-            this.id = id;
-        }
-
-        Node(byte byteData, int weight, Node left, Node right, int id) {
-            this.byteData = byteData;
-            this.weight = weight;
-            this.left = left;
-            this.right = right;
             this.id = id;
         }
 
