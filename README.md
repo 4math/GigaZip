@@ -94,7 +94,7 @@ Maximum search buffer size is 65536 bytes and maximum look-ahead buffer size is 
 
 ## Suffix array
 
-
+On purpose of quickly finding two coinciding byte sequences, we implemented Suffix array. Suffix array is a sorted array of all suffixes of a given file. We sort initial file using Counting sort and save sorted suffixes into a multidimensional array. Using this multidimensional array, we can find all places in the file where coincidences are possible.
 
 # References
 
