@@ -6,7 +6,7 @@ The project was done in Intellij IDEA 2020.
 
 # Project structure
 
-- [examples](.examples) folder contains examples which were used in benchmarking.
+- [examples](./examples) folder contains examples which were used in benchmarking.
 - [slides](./slides) folder contains presentation slides (in Latvian).
 - [/src/com/fourmath]([./src/com/fourmath) folder contains all the source files
 
