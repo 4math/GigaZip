@@ -48,11 +48,11 @@ We have used Deflate algorithm to compress our data and it consists of 2 algorit
 
 ## Huffman coding
 
-
+We have used the information from this source: https://cs.stanford.edu/people/eroberts/courses/soco/projects/data-compression/lossless/huffman/index.htm to understand and implement the Huffman tree. 
 
 ## LZ77 (LZSS)
 
-Deflate also uses LZ77, however, improved version LZSS does not require symbol in a reference and encodes only two values: relative offset and match length. We have implemented 2 versions of encoding, but prefix bit encoding was used in the final version.  
+Deflate also uses LZ77, however, improved version LZSS does not require symbol in a reference and encodes only two values: relative offset and match length. We have implemented 2 versions of encoding, but prefix bit encoding was used in the final version due to its higher compression ratio.  
 
 ### Reference encoding
 
@@ -76,7 +76,21 @@ This encoding does not provide the best compression, because buffers are quite s
 
 ### Prefix bit encoding
 
+Second version uses one additional bit to encode whether it is data or a reference. 
 
+Table below shows the encoding of data.
+
+|      | 1st byte       |
+| ---- | -------------- |
+| 0    | 1 byte of data |
+
+Table below shows the encoding of reference.
+
+|      | 1st byte          | 2nd byte        | 3rd byte        |
+| ---- | ----------------- | --------------- | --------------- |
+| 1    | match length byte | 1st offset byte | 2nd offset byte |
+
+Maximum search buffer size is 65536 bytes and maximum look-ahead buffer size is 256 bytes. 
 
 ## Suffix array
 
